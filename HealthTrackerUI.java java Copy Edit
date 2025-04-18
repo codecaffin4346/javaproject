@@ -1,0 +1,74 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.List;
+
+public class HealthTrackerUI extends JFrame {
+    private JTable table;
+    private JTextArea summaryArea;
+    private List<HealthRecord> records;
+
+    public HealthTrackerUI(List<HealthRecord> records) {
+        this.records = records;
+        setTitle("Student Health Tracker");
+        setSize(700, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        initUI();
+    }
+
+    private void initUI() {
+        // Layout
+        setLayout(new BorderLayout());
+
+        // Table
+        DefaultTableModel model = new DefaultTableModel(new String[]{"Name", "Age", "Pulse", "BP"}, 0);
+        for (HealthRecord r : records) {
+            model.addRow(new Object[]{r.getName(), r.getAge(), r.getPulse(), r.getBP()});
+        }
+        table = new JTable(model);
+        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // Bottom panel
+        JPanel bottomPanel = new JPanel();
+        JButton summaryButton = new JButton("Generate Summary");
+        JButton exportButton = new JButton("Export CSV");
+
+        summaryArea = new JTextArea(5, 50);
+        summaryArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(summaryArea);
+
+        summaryButton.addActionListener(e -> generateSummary());
+        exportButton.addActionListener(e -> {
+            DataManager.exportToCSV(records, "export/health_records.csv");
+            JOptionPane.showMessageDialog(this, "Data exported to CSV!");
+        });
+
+        bottomPanel.add(summaryButton);
+        bottomPanel.add(exportButton);
+        add(bottomPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.SOUTH);
+    }
+
+    private void generateSummary() {
+        int highBPCount = 0;
+        int totalPulse = 0;
+        for (HealthRecord r : records) {
+            totalPulse += r.getPulse();
+            if (r.getBP() > 140) highBPCount++;
+        }
+
+        double avgPulse = totalPulse / (double) records.size();
+        String summary = "Average Pulse: " + avgPulse +
+                         "\nStudents with High BP (>140): " + highBPCount +
+                         "\nTotal Students: " + records.size();
+        summaryArea.setText(summary);
+    }
+
+    public static void main(String[] args) {
+        List<HealthRecord> records = DataManager.readData("data/health_records.txt");
+        SwingUtilities.invokeLater(() -> new HealthTrackerUI(records).setVisible(true));
+    }
+}
